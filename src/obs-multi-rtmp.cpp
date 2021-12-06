@@ -72,7 +72,7 @@ public:
         });
         layout_->addWidget(addButton_);
 
-        // donate
+        /* donate
         if (std::string("\xe5\xa4\x9a\xe8\xb7\xaf\xe6\x8e\xa8\xe6\xb5\x81") == obs_module_text("Title"))
         {
             auto cr = new QWidget(container_);
@@ -168,7 +168,7 @@ public:
             label->setTextInteractionFlags(Qt::TextBrowserInteraction);
             label->setOpenExternalLinks(true);
             layout_->addWidget(label);
-        }
+        }*/
 
 
         // load config

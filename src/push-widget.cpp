@@ -164,8 +164,32 @@ class PushWidgetImpl : public PushWidget, public IOBSOutputEventHanlder
             return false;
         
         obs_data_set_string(conf, "server", tostdu8(conf_["rtmp-path"].toString()).c_str());
-        obs_data_set_string(conf, "key", tostdu8(conf_["rtmp-key"].toString()).c_str());
 
+        if (!QJsonUtil::Get(conf_, "keypi", false))
+            obs_data_set_string(conf, "key", tostdu8(conf_["rtmp-key"].toString()).c_str());
+        else
+        {
+            //p-i modify in setting key (remove _hd_) 
+            obs_service_t* stream_service = obs_frontend_get_streaming_service();
+            if (!stream_service)
+            {
+                auto msgbox = new QMessageBox(QMessageBox::Icon::Critical, 
+                    obs_module_text("Notice.Title"), 
+                    obs_module_text("Notice.GetEncoder"),
+                    QMessageBox::StandardButton::Ok,
+                    this
+                    );
+                msgbox->exec();
+                return false;
+            }
+            auto key =  std::string(obs_service_get_key(stream_service));
+            
+            std::regex regexp ("_hd_");               
+            auto key2 = std::regex_replace(key, regexp, "_");
+            obs_data_set_string(conf, "key", key2.c_str());
+
+            //obs_service_release(stream_service);
+        }
         auto user = tostdu8(conf_["rtmp-user"].toString());
         auto pass = tostdu8(conf_["rtmp-pass"].toString());
         if (!user.empty())

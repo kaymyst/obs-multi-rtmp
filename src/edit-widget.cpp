@@ -8,6 +8,7 @@ class EditOutputWidgetImpl : public EditOutputWidget
     QLineEdit* name_ = 0;
     QLineEdit* rtmp_path_ = 0;
     QLineEdit* rtmp_key_ = 0;
+    QCheckBox* rtmp_key_pi_ = 0;
 
     QLineEdit* rtmp_user_ = 0;
     QLineEdit* rtmp_pass_ = 0;
@@ -53,7 +54,7 @@ public:
         auto layout = new QGridLayout(this);
         layout->setColumnStretch(0, 0);
         layout->setColumnStretch(1, 1);
-
+        layout->setColumnStretch(1, 2);
         int currow = 0;
         {
             layout->addWidget(new QLabel(obs_module_text("StreamingName"), this), currow, 0);
@@ -68,6 +69,7 @@ public:
         {
             layout->addWidget(new QLabel(obs_module_text("StreamingKey"), this), currow, 0);
             layout->addWidget(rtmp_key_ = new QLineEdit(u8"", this), currow, 1);
+            layout->addWidget(rtmp_key_pi_ = new QCheckBox(obs_module_text("StreamingKeyPi"),this), currow, 2);
         }
         ++currow;
         {
@@ -240,6 +242,11 @@ public:
             LoadConfig();
             UpdateUI();
         });
+        QObject::connect(rtmp_key_pi_, (void (QCheckBox::*)(int)) &QCheckBox::stateChanged, [this](){
+            SaveConfig();
+            LoadConfig();
+            UpdateUI();
+        });
     }
 
     void LoadEncoders()
@@ -255,6 +262,8 @@ public:
 
     void UpdateUI()
     {
+        rtmp_key_->setEnabled(!rtmp_key_pi_->isChecked());
+
         auto ve = venc_->currentData();
         if (ve.isValid() && ve.toString() == "")
         {
@@ -295,6 +304,7 @@ public:
     {
         conf_["name"] = name_->text();
         conf_["syncstart"] = syncStart_->isChecked();
+        conf_["keypi"] = rtmp_key_pi_->isChecked();
         conf_["rtmp-path"] = rtmp_path_->text();
         conf_["rtmp-key"] = rtmp_key_->text();
         conf_["rtmp-user"] = rtmp_user_->text();
@@ -319,6 +329,7 @@ public:
     {
         name_->setText(QJsonUtil::Get(conf_, "name", QString(obs_module_text("NewStreaming"))));
         syncStart_->setChecked(QJsonUtil::Get(conf_, "syncstart", false));
+        rtmp_key_pi_->setChecked(QJsonUtil::Get(conf_, "keypi", false));
 
         QJsonUtil::IfGet(conf_, "rtmp-path", [&](QString rtmppath) {
             rtmp_path_->setText(rtmppath);
