@@ -162,26 +162,38 @@ class PushWidgetImpl : public PushWidget, public IOBSOutputEventHanlder
         auto conf = obs_data_create();
         if (!conf)
             return false;
+
+        obs_service_t* stream_service = obs_frontend_get_streaming_service();
+        if (!stream_service)
+        {
+            auto msgbox = new QMessageBox(QMessageBox::Icon::Critical, 
+                obs_module_text("Notice.Title"), 
+                obs_module_text("Notice.GetEncoder"),
+                QMessageBox::StandardButton::Ok,
+                this
+                );
+            msgbox->exec();
+            return false;
+        }
+
+        if (!QJsonUtil::Get(conf_, "pathpi", false))
+            obs_data_set_string(conf, "server", tostdu8(conf_["rtmp-path"].toString()).c_str());
+        else
+        {
+            //p-i get server from main config            
+            auto path =  std::string(obs_service_get_url(stream_service));   
+            std::regex regexp ("-rec");               
+            auto path2 = std::regex_replace(path, regexp, "-norec");
+            obs_data_set_string(conf, "server", path2.c_str());
+        }
         
-        obs_data_set_string(conf, "server", tostdu8(conf_["rtmp-path"].toString()).c_str());
 
         if (!QJsonUtil::Get(conf_, "keypi", false))
             obs_data_set_string(conf, "key", tostdu8(conf_["rtmp-key"].toString()).c_str());
         else
         {
             //p-i modify in setting key (remove _hd_) 
-            obs_service_t* stream_service = obs_frontend_get_streaming_service();
-            if (!stream_service)
-            {
-                auto msgbox = new QMessageBox(QMessageBox::Icon::Critical, 
-                    obs_module_text("Notice.Title"), 
-                    obs_module_text("Notice.GetEncoder"),
-                    QMessageBox::StandardButton::Ok,
-                    this
-                    );
-                msgbox->exec();
-                return false;
-            }
+            
             auto key =  std::string(obs_service_get_key(stream_service));
             
             std::regex regexp ("_hd_");               
