@@ -22,3 +22,8 @@ obj/Release
 *.generated.*
 **/.Brewfile.lock.json
 *.bak
+*.7z
+*.zip
+*.tar.xz
+*.pkg
+obs-src
