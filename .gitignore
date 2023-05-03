@@ -26,4 +26,5 @@ obj/Release
 *.zip
 *.tar.xz
 *.pkg
-obs-src
+/obs-src
+/dist
