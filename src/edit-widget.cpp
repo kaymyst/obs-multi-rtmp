@@ -15,6 +15,7 @@ class EditOutputWidgetImpl : public EditOutputWidget
     QLineEdit* rtmp_pass_ = 0;
 
     QComboBox* venc_ = 0;
+    QComboBox* v_scene_ = 0;
     QLineEdit* v_bitrate_ = 0;
     QLineEdit* v_keyframe_sec_ = 0;
     QLineEdit* v_bframes_ = 0;
@@ -38,6 +39,9 @@ class EditOutputWidgetImpl : public EditOutputWidget
             const char* encid;
             if (!obs_enum_encoder_types(i++, &encid))
                 break;
+            auto caps = obs_get_encoder_caps(encid);
+            if (caps & OBS_ENCODER_CAP_DEPRECATED)
+                continue;
             auto enc_codec = obs_get_encoder_codec(encid);
             if (strcmp(enc_codec, codec) == 0)
                 result.emplace_back(encid);
@@ -111,6 +115,12 @@ public:
                     ++currow;
                     {
                         int curcol = 0;
+                        encLayout->addWidget(new QLabel(obs_module_text("Scene"), gp), currow, curcol++);
+                        encLayout->addWidget(v_scene_ = new QComboBox(gp), currow, curcol++);
+                    }
+                    ++currow;
+                    {
+                        int curcol = 0;
                         encLayout->addWidget(new QLabel(obs_module_text("VideoResolution"), gp), currow, curcol++);
                         encLayout->addWidget(v_resolution_ = new QLineEdit("", gp), currow, curcol++);
                         v_resolution_->setPlaceholderText(obs_module_text("SameAsOBSNow"));
@@ -123,7 +133,7 @@ public:
                         {
                             int curcol = 0;
                             c->addWidget(v_bitrate_ = new QLineEdit("", gp), 0, curcol++);
-                            c->addWidget(new QLabel("kbps", gp), 0, curcol++);
+                            c->addWidget(new QLabel(obs_module_text("kbps"), gp), 0, curcol++);
                             c->setColumnStretch(0, 1);
                             c->setColumnStretch(1, 0);
                         }
@@ -222,6 +232,8 @@ public:
         setLayout(layout);
 
         LoadEncoders();
+        LoadScenes();
+
         LoadConfig();
         ConnectWidgetSignals();
         UpdateUI();
@@ -258,13 +270,35 @@ public:
 
     void LoadEncoders()
     {
+        auto ui_text = [](auto id) {
+            return std::string(obs_encoder_get_display_name(id.c_str())) + " [" + id + "]";
+        };
         venc_->addItem(obs_module_text("SameAsOBS"), "");
         for(auto x : EnumEncodersByCodec("h264"))
-            venc_->addItem(obs_encoder_get_display_name(x.c_str()), x.c_str());
+            venc_->addItem(ui_text(x).c_str(), x.c_str());
         
         aenc_->addItem(obs_module_text("SameAsOBS"), "");
         for(auto x : EnumEncodersByCodec("AAC"))
-            aenc_->addItem(obs_encoder_get_display_name(x.c_str()), x.c_str());
+            aenc_->addItem(ui_text(x).c_str(), x.c_str());
+    }
+
+    void LoadScenes()
+    {
+        v_scene_->addItem(obs_module_text("SameAsOBS"), "");
+        
+        using EnumParam = std::vector<std::string>;
+        std::vector<std::string> scenes;
+        obs_enum_scenes([](void* p, obs_source_t* src) {
+            auto scenes = (EnumParam*)p;
+            auto name = obs_source_get_name(src);
+            if (name && *name)
+                scenes->emplace_back(name);
+            return true;
+        }, &scenes);
+
+        for(auto& x: scenes) {
+            v_scene_->addItem(x.c_str(), x.c_str());
+        }
     }
 
     void UpdateUI()
@@ -275,6 +309,7 @@ public:
         auto ve = venc_->currentData();
         if (ve.isValid() && ve.toString() == "")
         {
+            v_scene_->setEnabled(false);
             v_bitrate_->setText(obs_module_text("SameAsOBS"));
             v_bitrate_->setEnabled(false);
             v_resolution_->setText(obs_module_text("SameAsOBS"));
@@ -287,6 +322,7 @@ public:
         }
         else
         {
+            v_scene_->setEnabled(true);
             v_bitrate_->setEnabled(true);
             v_resolution_->setEnabled(true);
             v_keyframe_sec_->setEnabled(true);
@@ -320,6 +356,8 @@ public:
         conf_["rtmp-pass"] = rtmp_pass_->text();
         conf_["v-enc"] = venc_->currentData().toString();
         conf_["a-enc"] = aenc_->currentData().toString();
+        if (v_scene_->isEnabled())
+            conf_["v-scene"] = v_scene_->currentData().toString();
         if (v_bitrate_->isEnabled())
             try { conf_["v-bitrate"] = std::stod(tostdu8(v_bitrate_->text())); } catch(...) {}
         if (v_keyframe_sec_->isEnabled())
@@ -359,6 +397,13 @@ public:
         QJsonUtil::IfGet(conf_, "rtmp-pass", [&](QString rtmppass) {
             rtmp_pass_->setText(rtmppass);
             return rtmppass;
+        });
+
+        QJsonUtil::IfGet(conf_, "v-scene", [&](QString sceneName) {
+            auto idx = v_scene_->findData(sceneName);
+            if (idx >= 0)
+                v_scene_->setCurrentIndex(idx);
+            return sceneName;
         });
 
         QJsonUtil::IfGet(conf_, "v-enc", [&](QString encid) {

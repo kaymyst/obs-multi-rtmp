@@ -46,7 +46,7 @@ public:
         , reopenShown_(false)
     {
         setWindowTitle(obs_module_text("Title"));
-        setFeatures((DockWidgetFeatures)(AllDockWidgetFeatures & ~DockWidgetClosable));
+        setFeatures(QDockWidget::DockWidgetFloatable | QDockWidget::DockWidgetMovable);
 
         // save dock location
         QObject::connect(this, &QDockWidget::dockLocationChanged, [this](Qt::DockWidgetArea area) {
@@ -60,9 +60,11 @@ public:
         layout_ = new QGridLayout(container_);
         layout_->setAlignment(Qt::AlignmentFlag::AlignTop);
 
+        int currow = 0;
+
         // init widget
-        addButton_ = new QPushButton(obs_module_text("Btn.NewTarget"), container_);
-        QObject::connect(addButton_, &QPushButton::clicked, [this]() {
+        auto addButton = new QPushButton(obs_module_text("Btn.NewTarget"), container_);
+        QObject::connect(addButton, &QPushButton::clicked, [this]() {
             auto pushwidget = createPushWidget(QJsonObject(), container_);
             layout_->addWidget(pushwidget);
             if (pushwidget->ShowEditDlg())
@@ -70,7 +72,29 @@ public:
             else
                 delete pushwidget;
         });
-        layout_->addWidget(addButton_);
+        layout_->addWidget(addButton);
+
+        // start all, stop all
+        auto allBtnContainer = new QWidget(this);
+        auto allBtnLayout = new QHBoxLayout();
+        auto startAllButton = new QPushButton(obs_module_text("Btn.StartAll"), allBtnContainer);
+        allBtnLayout->addWidget(startAllButton);
+        auto stopAllButton = new QPushButton(obs_module_text("Btn.StopAll"), allBtnContainer);
+        allBtnLayout->addWidget(stopAllButton);
+        allBtnContainer->setLayout(allBtnLayout);
+        layout_->addWidget(allBtnContainer);
+
+        QObject::connect(startAllButton, &QPushButton::clicked, [this]() {
+            for (auto x : GetAllPushWidgets())
+                x->StartStreaming();
+        });
+        QObject::connect(stopAllButton, &QPushButton::clicked, [this]() {
+            for (auto x : GetAllPushWidgets())
+                x->StopStreaming();
+        });
+        
+        // load config
+        LoadConfig();
 
         /* donate
         if (std::string("\xe5\xa4\x9a\xe8\xb7\xaf\xe6\x8e\xa8\xe6\xb5\x81") == obs_module_text("Title"))
@@ -79,60 +103,51 @@ public:
             auto innerLayout = new QGridLayout(cr);
             innerLayout->setAlignment(Qt::AlignmentFlag::AlignLeft);
 
-            auto label = new QLabel(u8"本插件免费提供，也可以投喂作者。", cr);
+            auto label = new QLabel(u8"免费领红包或投喂支持插件作者。", cr);
             innerLayout->addWidget(label, 0, 0, 1, 2);
             innerLayout->setColumnStretch(0, 4);
             auto label2 = new QLabel(u8"作者：雷鸣", cr);
             innerLayout->addWidget(label2, 1, 0, 1, 1);
-            auto btnFeed = new QPushButton(u8"投喂", cr);
+            auto btnFeed = new QPushButton(u8"支持", cr);
             innerLayout->addWidget(btnFeed, 1, 1, 1, 1);
+            
             QObject::connect(btnFeed, &QPushButton::clicked, [this]() {
+                const char redbagpng[] = 
+                    "iVBORw0KGgoAAAANSUhEUgAAAJgAAACXAQMAAADTWgC3AAAABlBMVEUAAAD///+l2Z/dAAAAAWJLR0Q"
+                    "AiAUdSAAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAWtJREFUSMe1lk2OgzAMhY1YZJkj5CbkYkggcTG4SY"
+                    "6QZRaonmcHqs7PYtTaVVWSLxJu7JfnEP/+0H9ZIaKRA0aZz4QJJXuGQFsJO9HU104H1ihuTENl4IS12"
+                    "YmVcFSa4unJuE2xZV69mOav5XrX6nRgMi6Ii+3Nr9p4k8m7w5OtmOVbzw8ZrOmbxs0Y/ktENMlfnQnx"
+                    "NweG2vB1ZrZCPoyPfmbwXWSPiz1DvIrHwOHgFQsQtTkrmG6McRvqUu4aGbM28Cm1wRM62HtOP2DwkFF"
+                    "ypKVoU/dEa8Y9rtaFJLg5EzscoSfBKMWgZ8aY9bj4EQ1jo9GDIR68kKukMCF/6pPWTPW0R9XulVNzpj"
+                    "6Z5ZzMpOZrzvRElPC49Awx2LOi3k7aP+akhnL1AEMmPYphvtqeGD032TPt5zB2kQBq5Mgo9hrl7lceT"
+                    "MQsEkD80YH1O9xRw9Vzn/cSQ6Y6EK1JH3nVxvss/GCf3L3/YF97Nxv6vuoIAwAAAABJRU5ErkJggg=="
+                    ;
                 const char alipaypng[] = 
-                    "iVBORw0KGgoAAAANSUhEUgAAAL4AAAC+CAMAAAC8qkWvAAADAFBMVEX///8AAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                    "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALI7fhAAAACXBIWXMAAAsSAAALEg"
-                    "HS3X78AAAByUlEQVR4nO3QwQ3DMAwEwaT/plOAcMTSch6U9l6BQ5Nz/nyMMcZcmS9OerfeTJ5vGOTLl"
-                    "z+Ynwj1wXpy/Z04zwzy5cs/g0/WkyqkxI5Bvnz5t/H5E1Jdvnz58vf5HJsm5cuXfxs/hUDSwZ2iwCBf"
-                    "vvzBfJJ1zbu/uUG+fPnT+d2sa3aA25xu5Mt/HPlv8tPKdDCdJf92q4CK8uXLH8mv1z8rWm/uvgWqyJc"
-                    "vfzA/jXQLpZByvKJ8+fLn8tNL6WD3FKlObpVfRL58+cP4ZLBbop5MSRfTjHz58ufy0xpS5Rm/vpv2yJ"
-                    "cv/yR+d1k9SerW8/VF+fLln8TfSQJ2iybs3+DrevnyW5G/bGvy6/EESdj0Fi9Xb5YvX/6p/DRel0vzO"
-                    "9XTXfny5c/lE3gikFOcv1YHn0e+fPkj+WnBDpMc54XqcvLly5/IJ5y0YJ3pTvIN8uXLP4nfDTm4/0n4"
-                    "vHz58ifyEye9Sr5FTUs703758uWfyk+Qev36bv2cfADyeeTLl38SP9HI8S5qvUWqy5cv/04+4aTJEtL"
-                    "wyJcv/zY+h3RTY+XLl38qv16cjnQ/wDrJr8uXL/8kPkmqQlDd/fUT+fLlT+cbY4y5Ij9rnzvpMKGpCA"
-                    "AAAABJRU5ErkJggg==";
+                    "iVBORw0KGgoAAAANSUhEUgAAALsAAAC4AQMAAACByg+HAAAABlBMVEUAAAD///+l2Z/dAAAAAWJLR0Q"
+                    "AiAUdSAAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAVtJREFUWMPNmEGugzAMRM0qx+CmIbkpx8gK1zM2/U"
+                    "L66w4RogqvC5dhxqbm/6/TfgEuwzr8PNwnjhP7pgYNxR1r97XPhUvxjUsPztj0hkJ7O7c4m/V3gCg36"
+                    "r5Q68uA7SHtaC8BlBbP2T4awFNzEaANOtSt4+EPEciEiKJn2eCZJSIQ5XbU5yFt+HNUfIgBNqFo6Grh"
+                    "BDxttIQcoL5ICrsTbdAYWgBPIltxK7uVRaeLQToTFRMbb+JoYoAHjsG63UWXtFIQm2w/mV9x9vodUnC"
+                    "vCWfuiA+oqwaLH7Al8qL/aS4GA9I6zkz/bbFBSsHVKi++Dftg89YC53DDq8iLTJCSVgcq6DlMZGRkzm"
+                    "pBtW2jRRH3flU3UIIacWBLduv0gxzwltGTaUtOFS4HVSJHnBp35jvAsbJnV/RbewWgtLVyAlODkjZSd"
+                    "eMrkNfsIwX3awYfuLLEaGKg/OvlAz+wXVruSNSgAAAAAElFTkSuQmCC";
                 const char wechatpng[] = 
-                    "iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAAEJklEQVR4nO3dwW7lKBAF0Mlo/v+XM4v"
-                    "srFz0MFVAt87Zpm2T9BUqYSh/fX9//wO/+ff0ALiXcBAJB5FwEAkHkXAQCQfRf+kHX19fe0bwWGgZP7"
-                    "dwVWblFxyPeTzIlX/c59dhmDmIhINIOIiEgygWpA/bKsG+Bz3uvFJUPqwUlVPP3VyPmzmIhINIOIiEg"
-                    "+jTgvRhauVuqow6tYC48qCpKrJwzH3/Cz/MHETCQSQcRMJB9LIg3aZw4XJ8q+7i7k9k5iASDiLhIBIO"
-                    "otsL0oe+lcqp+nTq2qmtAlcxcxAJB5FwEAkH0cuCtG+JsPC80PjOK4epLqkiuxdqzRxEwkEkHETCQfR"
-                    "pQbqtBFtZfHzYdm3hmMc2F8JmDiLhIBIOIuEg+rp8O+SfWOv1DXIzMweRcBAJB5FwEMWCtLBN5/jOfe"
-                    "/ox1bO/m97UOGv/+LvbOYgEg4i4SASDqKXfUj7WsEXvmefUjjI8Z3Ht5oa1dS1L2pqMweRcBAJB5FwE"
-                    "MWCdKX069sHOtb3fr9vkCu6NwOYOYiEg0g4iISD6OUr+77vfZ7aFtrXGH/lVmf/sGYOIuEgEg4i4SCq"
-                    "2UNa2GS+7wX3SuPRUz2iznbvN3MQCQeRcBAJB9HLU/anFh8vKTnH1z5sO2VfXq6aOYiEg0g4iISD6NM"
-                    "V0r5tkne2Qerr+Fm4s7W7J5aZg0g4iISDSDiIXjbG7zspP37uyoO2/Qo315hTzBxEwkEkHETCQfTpK/"
-                    "tt77u39SGdGsbKtXd+dvRBH1LmCAeRcBAJB1HNHtJTZ+G37Q04VSYX0hifSsJBJBxEwkH06Sv7QoULi"
-                    "CuFYV871L9gx8IPMweRcBAJB5FwELXsIV25dts65vjah1MnkcbDmGKFlErCQSQcRMJBVHPKfltfzinb"
-                    "dqee2gzQ3W7KzEEkHETCQSQcRAca43e/aE7u3Pd66rsAn9zZzEEkHETCQSQcRC+/Zf8wVaCtrJCeerH"
-                    "e96Dxncejevzj8pVoMweRcBAJB5FwEL1s+3Sqt+a2A1FjheuYY9s+cvUrMweRcBAJB5FwEL3cQ7rtjN"
-                    "Op0u/v6/P04FATS4SDSDiIhIPoZR/SPnd2pL/zfFTfkfwfZg4i4SASDiLhIIp7SE+dhS8s7gpXV0+tg"
-                    "W7rmPUrMweRcBAJB5FwEH3ah7Sw2Lmk7dPKAaFtTbDOHsQycxAJB5FwEAkH0csvNV3SprPwp9tKzqnv"
-                    "R/VxqIklwkEkHETCQXTg06FjK/tA+w6wF77f72sZNeaUPZWEg0g4iISD6LqCdMrKsaXCdlN9rf7PHvY"
-                    "3cxAJB5FwEAkH0cuC9NTZ/MLlxW2fSBorLHXLm2+ZOYiEg0g4iISD6NOC9JJWm31feSq8tu9ofOHOVq"
-                    "/sWSIcRMJBJBxE1/Uh5R5mDiLhIBIOIuEgEg4i4SD6HwwNH1Is1PfhAAAAAElFTkSuQmCC";
+                    "iVBORw0KGgoAAAANSUhEUgAAAK8AAACtAQMAAAD8lL09AAAABlBMVEUAAAD///+l2Z/dAAAAAWJLR0Q"
+                    "AiAUdSAAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAbpJREFUSMe9l0GugzAMRI26yDJHyE3Si1WiEhcrN8"
+                    "kRWLJA8Z9xaNUv/eUfUIXgqQtn4pkY87+ubv+Cd8O1T3g2y4unzveqxXf3BniUeLKa3XcxrnZr+32zg"
+                    "iXPDvy0S/C04WYo4jpsKCK97FH2K3DovfqzoJzAX9sgwtFVNS/tvH03mwYPs6zb7PjDrf22lAZT6ugq"
+                    "wwtaCzLYWLwO13yUUQl3N70yDSTFWOqCJbORsdloLYguxrSNgxyWhl3Z0l2LjWaZUE541qaRFUqM342"
+                    "5sDTYdY5EZE1KjHU/z25+0UV3yi/GE4LeubHe0V9QYFZjEOhN70QOmp0JocSdGT82Nh+D7nrcQoHkDO"
+                    "GOcmLnhXil3vAsy5nRWhS9SjGkhmMiddHIMO6580oMu5a0xpAC0aOSOHd0mC+jodjNnhyVqDH1Tj3Ts"
+                    "0hEm3CGv7dYhDkdQGr0cOJxxquMM02GI44g+tKiqwwZVd4HugjHfOKxeEYvQ9jVOKawzrRnQkQSf4Yz"
+                    "EeasiWHhwfYNF8WkIscc985pKCaGSzA9S6eGAmpMvRlFzonBLZ6qFp8nyhxSM/IP+3x2arDwc/kHxnM"
+                    "tm62qBBUAAAAASUVORK5CYII=";
                 auto donateWnd = new QDialog();
-                donateWnd->setWindowTitle(u8"投喂");
+                donateWnd->setWindowTitle(u8"赞助");
+                auto redbagBtn = new QPushButton(u8"支付宝领红包", donateWnd);
+                auto redbagQr = new QLabel(donateWnd);
+                auto redbagQrBmp = QPixmap::fromImage(QImage::fromData(QByteArray::fromBase64(QByteArray::fromRawData(redbagpng, sizeof(redbagpng) - 1)), "png"));
+                redbagQr->setPixmap(redbagQrBmp);
                 auto aliBtn = new QPushButton(u8"支付宝", donateWnd);
                 auto aliQr = new QLabel(donateWnd);
                 auto aliQrBmp = QPixmap::fromImage(QImage::fromData(QByteArray::fromBase64(QByteArray::fromRawData(alipaypng, sizeof(alipaypng) - 1)), "png"));
@@ -142,16 +157,26 @@ public:
                 auto weQrBmp = QPixmap::fromImage(QImage::fromData(QByteArray::fromBase64(QByteArray::fromRawData(wechatpng, sizeof(wechatpng) - 1)), "png"));
                 weQr->setPixmap(weQrBmp);
                 auto layout = new QGridLayout(donateWnd);
-                layout->addWidget(aliBtn, 0, 0);
-                layout->addWidget(weBtn, 0, 1);
-                layout->addWidget(aliQr, 1, 0, 1, 2);
-                layout->addWidget(weQr, 1, 0, 1, 2);
+                layout->addWidget(redbagBtn, 0, 0);
+                layout->addWidget(aliBtn, 0, 1);
+                layout->addWidget(weBtn, 0, 2);
+                layout->addWidget(redbagQr, 1, 0, 1, 3);
+                layout->addWidget(aliQr, 1, 0, 1, 3);
+                layout->addWidget(weQr, 1, 0, 1, 3);
+                aliQr->setVisible(false);
                 weQr->setVisible(false);
-                QObject::connect(aliBtn, &QPushButton::clicked, [aliQr, weQr]() {
+                QObject::connect(redbagBtn, &QPushButton::clicked, [redbagQr, aliQr, weQr]() {
+                    redbagQr->setVisible(true);
+                    aliQr->setVisible(false);
+                    weQr->setVisible(false);
+                });
+                QObject::connect(aliBtn, &QPushButton::clicked, [redbagQr, aliQr, weQr]() {
+                    redbagQr->setVisible(false);
                     aliQr->setVisible(true);
                     weQr->setVisible(false);
                 });
-                QObject::connect(weBtn, &QPushButton::clicked, [aliQr, weQr]() {
+                QObject::connect(weBtn, &QPushButton::clicked, [redbagQr, aliQr, weQr]() {
+                    redbagQr->setVisible(false);
                     aliQr->setVisible(false);
                     weQr->setVisible(true);
                 });
@@ -163,16 +188,12 @@ public:
         }
         else
         {
-            auto label = new QLabel(u8"<p>This plugin provided free. <br>Author: SoraYuki (<a href=\"https://paypal.me/sorayuki0\">donate</a>) </p>", container_);
+            auto label = new QLabel(u8"<p>This plugin is provided for free. <br>Author: SoraYuki (<a href=\"https://paypal.me/sorayuki0\">donate</a>) </p>", container_);
             label->setTextFormat(Qt::RichText);
             label->setTextInteractionFlags(Qt::TextBrowserInteraction);
             label->setOpenExternalLinks(true);
             layout_->addWidget(label);
         }*/
-
-
-        // load config
-        LoadConfig();
 
         scroll_->setWidgetResizable(true);
         scroll_->setWidget(container_);
@@ -185,7 +206,6 @@ public:
     void visibleToggled(bool visible)
     {
         dockVisible_ = visible;
-        return;
 
         if (visible == false
             && reopenShown_ == false
@@ -224,11 +244,6 @@ public:
         return result;
     }
 
-    void RemoveAll()
-    {
-
-    }
-
     void SaveConfig()
     {
         auto profile_config = obs_frontend_get_profile_config();
@@ -240,7 +255,7 @@ public:
         root["targets"] = targetlist;
         QJsonDocument jsondoc;
         jsondoc.setObject(root);
-        config_set_string(profile_config, ConfigSection, "json", jsondoc.toBinaryData().toBase64().constData());
+        config_set_string(profile_config, ConfigSection, "json", jsondoc.toJson().toBase64().constData());
 
         config_save_safe(profile_config, "tmp", "bak");
     }
@@ -258,7 +273,7 @@ public:
         if (base64str && *base64str)
         {
             auto bindat = QByteArray::fromBase64(base64str);
-            auto jsondoc = QJsonDocument::fromBinaryData(bindat);
+            auto jsondoc = QJsonDocument::fromJson(bindat);
             if (jsondoc.isObject()) {
                 conf = jsondoc.object();
 
@@ -286,7 +301,6 @@ private:
     QWidget* container_ = 0;
     QScrollArea* scroll_ = 0;
     QGridLayout* layout_ = 0;
-    QPushButton* addButton_ = 0;
 };
 
 OBS_DECLARE_MODULE()
@@ -298,63 +312,6 @@ bool obs_module_load()
     // check obs version
     if (obs_get_version() < MAKE_SEMANTIC_VERSION(26, 1, 0))
         return false;
-    
-    // check old version
-#ifdef _WIN32
-    if (false) {
-        std::vector<wchar_t> szExePath(MAX_PATH);
-        if (GetModuleFileNameW(NULL, szExePath.data(), szExePath.size()) > 0) {
-            auto old_data_dir = std::filesystem::path(szExePath.data())
-                .parent_path() // 32bit or 64bit
-                .parent_path() // bin
-                .parent_path() // install dir
-                .append(L"data")
-                .append(L"obs-plugins")
-                .append(L"obs-multi-rtmp");
-
-            auto old_32bit_file = std::filesystem::path(szExePath.data())
-                .parent_path() // 32bit or 64bit
-                .parent_path() // bin
-                .parent_path() // install dir
-                .append(L"obs-plugins")
-                .append(L"32bit")
-                .append(L"obs-multi-rtmp.dll");
-
-            auto old_64bit_file = std::filesystem::path(szExePath.data())
-                .parent_path() // 32bit or 64bit
-                .parent_path() // bin
-                .parent_path() // install dir
-                .append(L"obs-plugins")
-                .append(L"64bit")
-                .append(L"obs-multi-rtmp.dll");
-
-            std::wstring pathlist;
-            if (std::filesystem::exists(old_data_dir)) {
-                pathlist += L"\n" + old_data_dir.wstring();
-            }
-
-            if (std::filesystem::exists(old_32bit_file)) {
-                pathlist += L"\n" + old_32bit_file.wstring();
-            }
-
-            if (std::filesystem::exists(old_64bit_file)) {
-                pathlist += L"\n" + old_64bit_file.wstring();
-            }
-            
-            if (!pathlist.empty()) {
-                MessageBoxW(NULL, 
-                    (LR"__(插件加载失败！请先手工删除本插件的旧版本。
-ロード失敗。お手順ですがこのプラグインの古いバージョンを削除してください。
-Fail to load obs-multi-rtmp. Please remove old versions of this plugin.
-
-旧版残留 / 残りファイル / Old version files:)__" + pathlist).c_str(), 
-                    L"OBS-MULTI-RTMP 错误 / エラー / Error", MB_ICONERROR | MB_OK
-                );
-                return false;
-            }
-        }
-    }
-#endif
     
     auto mainwin = (QMainWindow*)obs_frontend_get_main_window();
     if (mainwin == nullptr)
@@ -376,7 +333,7 @@ Fail to load obs-multi-rtmp. Please remove old versions of this plugin.
                 x->OnOBSEvent(event);
 
             if (event == obs_frontend_event::OBS_FRONTEND_EVENT_EXIT)
-            {
+            {   
                 mainwin->SaveConfig();
             }
             else if (event == obs_frontend_event::OBS_FRONTEND_EVENT_PROFILE_CHANGED)

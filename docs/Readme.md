@@ -8,12 +8,9 @@
   gtag('config', 'UA-163314878-1');
 </script>
 
-一生懸命に日本語で書いてみます＞＜
-
 # OBS 同時配信プラグイン
 
-本プラグインは、複数サイトに同時配信のため作ったものです。
-
+本プラグインは複数のサイトで同時配信を行なうために作ってみた物です。
 
 # スクリーンショット
 
@@ -22,90 +19,75 @@
 
 # ダウンロード
 
-[Windows版リリースページへ](https://github.com/sorayuki/obs-multi-rtmp/releases/)
+[リリースページ](https://github.com/sorayuki/obs-multi-rtmp/releases/)
 
-[macOS版リリースページへ](https://github.com/kilinbox/obs-multi-rtmp/releases) (非公式)
+現在、更新の自動チェック機能は搭載していません。
 
 
 # Windows版インストール手順
 
-## インストーラーを利用する場合
+## インストーラーを使用する場合
 
-インストーラーを利用してください。目標フォルダを変更しないで。
+そのままインストールを実行してください。
 
-## Portableの場合
+インストール先のフォルダーは変更をしないでください。
 
-アーカイブを　C:\Program Files\obs-studio　に解凍してください。
+## ポータブル版の場合
+
+圧縮ファイルを展開後に「C:\Program Files\obs-studio」へファイルを配置してください。
 
 ## アンインストール
 
-インストーラーを利用してアンインストールもできます。
+インストーラーを使用してアンインストールが行えます。
 
-インストーラーはこのプラグインを正しくリムーブしなかった場合、```C:\ProgramData\obs-studio\plugins\obs-multi-rtmp```フォルダを削除して済みます。
+インストーラーでこのプラグインが正しく削除できなかった場合は、「C:\ProgramData\obs-studio\plugins\obs-multi-rtmp」のフォルダーを削除で消す事ができます。ファイル名を指定して実行で「%programdata%」と入力すると対象のフォルダーを開く事ができます。
 
-ProgramDataは普段に非表示ので注意してください。
-
-# macOS版インストール手順
-
-[kilinboxさんのページ](https://www.kilinbox.net/2021/01/obs-multi-rtmp.html)
+「ProgramData」は通常だと非表示になっているのでご注意ください。
 
 
-# 要求環境(Windows版)
+# インストール要件 (Windows版)
 
-OBS-Studio バージョン 26.1.1 以降
-また、OBS-Studio 本体は QT 5.15.2 と共にビルドしたバージョン
-
-確認済：
-obs-studio 26.1.1
+ OBS-Studioのバージョンに合わせてください。
 
 
-# よくあるご質問
+# よくある質問 (FAQ)
 
-**Q: どうして OBS 25.0 以降じゃなくてダメなの？**
+**Q: 同時配信のドックウィンドウが表示されなくなりました。ドックをリセットしても変りません。**
 
-A: 古いバージョンの RTMP 配信モジュールはスレッドセーフじゃないため、複数配信の時クラッシュする可能性があります。
+A: たまに発生するバグのようです。原因は不明ですが、以下の手順でドックをリセットする事が可能です。
 
-詳しいはこのコミットに参照してください: 
+スタジオモードに変更をするとドックウィンドウが表示されるかもしれません。
 
-https://github.com/obsproject/obs-studio/commit/2b131d212fc0e5a6cd095b502072ddbedc54ab52 
+もし、それでも表示がされない場合は
 
+1. 「ヘルプ　→　ログファイル　→　ログファイルを表示」を行なう
+2. OBSを終了する
+3. 「AppData\Roaming\obs-studio」の格納先を開く(ファイル名を指定して実行で「%appdata%」と入力すると対象のフォルダーを開く事ができます)
+4. 「global.ini」をテキストエディタで開く
+5. DockState=XXXXXXXX(長い文字列になっています)を探す
+6. その行を削除をし、保存をする
 
-**Q: どうして OBS 本体が配信したことない時このプラグインは使えないでしょうか？**
-
-A: このプラグインは OBS 本体のエンコーダーと共有している。しかし、OBS は初めての配信を開始した前エンコーダーの作成しない。
-
-
-# How to Build (Windows)
-
-1. Prepare environment
-   1. Put official release OBS 26.1.2 into obs-bin directory. 
-   2. Extract OBS source code of same version as binary to obs-src
-   3. Download Qt that obs-bin uses. Which can be found in CI\install-qt-win.cmd
-
-2. Configure
-   Use cmake to configure this project. must use VS2019 or higher. 
-   cmake's QTDIR variable is set to the path of QT in the same version as obs uses. 
-   
-   Set CMAKE_BUILD_TYPE to Release. 
-
-   > Notice: debug version of this plugin only works with debug version of OBS, which means you must build OBS from source.
-
-3. Compile
+の手順で直ると思います。
 
 
-# Donate
+# ビルド方法
+
+断続的インテグレーションのスクリプトをご参照ください。
+
+
+# 寄付 / Donate
 
 如果你觉得这个工具很有用想要捐赠，这里是链接。注意：这不是提需求的渠道。
 
-このツールに投げ銭したいならここはリンクです。（機能要求ではありません）
+このツールの開発に支援もとい投げ銭をしたいと思った方は以下のリンクからお願いします。(機能のリクエストは受け付けていません)
 
 If you regard this tool useful and want to doante for some, here is the link. (It's not for feature request.)
 
-## paypal / 贝宝
-[paypal / 贝宝](https://paypal.me/sorayuki0)
+## PayPal / 贝宝
+[PayPal / 贝宝](https://paypal.me/sorayuki0)
 
-## alipay or wechat / 支付宝或微信
+## AliPay または WeChat / 支付宝或微信
 
-[alipay](./zhi.png) 
+[AliPay](./zhi.png) 
 
-[wechat](./wechat.jpg)
+[WeChat](./wechat.jpg)
